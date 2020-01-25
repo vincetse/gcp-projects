@@ -16,7 +16,7 @@ data "google_organization" "org" {
 ################################################################################
 # authorized IP CIDRs
 locals {
-  project_id = "user-portal-63981"
+  project_id = "service1-32174"
   authorized_networks = [
     {
       name : "home",
