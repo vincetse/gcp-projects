@@ -12,6 +12,10 @@ data "google_organization" "org" {
   domain = "thelazyenginerd.github.io"
 }
 
+################################################################################
+data "http" "myip" {
+  url = "http://ipv4.icanhazip.com"
+}
 
 ################################################################################
 # authorized IP CIDRs
@@ -19,8 +23,8 @@ locals {
   project_id = "service1-32174"
   authorized_networks = [
     {
-      name : "home",
-      value : "207.237.93.174/32",
+      name = "home"
+      value = "${chomp(data.http.myip.body)}/32"
     },
   ]
 }
