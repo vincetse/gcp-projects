@@ -14,7 +14,7 @@ resource "google_sql_database_instance" "instance" {
   settings {
     tier              = var.tier
     disk_type         = "PD_HDD"
-    availability_type = "REGIONAL"
+    availability_type = var.enable_ha ? "REGIONAL" : "ZONAL"
     ip_configuration {
       ipv4_enabled    = true
       private_network = null
@@ -38,7 +38,6 @@ resource "google_sql_database_instance" "instance" {
       binary_log_enabled = true
       start_time         = "05:00"
     }
-
   }
 }
 

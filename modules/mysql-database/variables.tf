@@ -43,3 +43,9 @@ variable "authorized_networks" {
   description = "list of IP CIDRs that are allowed to access the database"
   default     = []
 }
+
+variable "enable_ha" {
+  type = bool
+  description = "Enable high availability with regional deployment"
+  default = false
+}
