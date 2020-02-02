@@ -1,6 +1,7 @@
 provider "google-beta" {
   region = "us-central1"
   zone   = "us-central1-c"
+  alias  = "google_beta"
 }
 
 provider "google" {
@@ -14,7 +15,7 @@ data "google_organization" "org" {
 
 ################################################################################
 data "http" "myip" {
-  url = "http://ipv4.icanhazip.com"
+  url = "http://ifconfig.co"
 }
 
 ################################################################################
@@ -23,7 +24,7 @@ locals {
   project_id = "service1-32174"
   authorized_networks = [
     {
-      name = "home"
+      name  = "home"
       value = "${chomp(data.http.myip.body)}/32"
     },
   ]
@@ -31,33 +32,98 @@ locals {
 
 
 ################################################################################
-# Common infrastructure
-module "db1" {
-  source           = "./modules/mysql-database"
-  database_name    = "db1"
-  database_version = "MYSQL_5_7"
-  region           = "us-central1"
-  project_id       = local.project_id
-  tier             = "db-f1-micro"
-  readwrite_users = [
-    "vincetse",
-    "foobar",
+## Common infrastructure
+#module "db1" {
+#  source           = "./modules/mysql-database"
+#  database_name    = "db1"
+#  database_version = "MYSQL_5_7"
+#  region           = "us-central1"
+#  project_id       = local.project_id
+#  tier             = "db-f1-micro"
+#  readwrite_users = [
+#    "vincetse",
+#    "foobar",
+#  ]
+#  authorized_networks = local.authorized_networks
+#}
+#
+#output "db1_public_ip_address" {
+#  value = module.db1.public_ip_address
+#}
+#
+#output "db1_private_ip_address" {
+#  value = module.db1.private_ip_address
+#}
+#
+#output "mysql_cmd" {
+#  value = <<END
+#
+#mysql -h ${module.db1.public_ip_address} -u vincetse -p db1
+#
+#END
+#}
+
+
+################################################################################
+# Container infrastructure
+locals {
+  container_cluster_name = "k8s-1"
+  container_cluster_zone = "us-central1-a"
+  k8s_version = "1.14.10-gke.22"
+  cluster_type = "zonal"
+}
+
+module "k8s" {
+  source       = "./modules/k8s"
+  name         = local.container_cluster_name
+  location     = local.container_cluster_zone
+  cluster_type = local.cluster_type
+  k8s_version  = local.k8s_version
+  project_id   = local.project_id
+
+  remove_default_node_pool = false
+  default_node_pool = {
+      machine_type = "e2-standard-2"
+      disk_type    = "pd-standard"
+      disk_size_gb = 100
+      preemptible  = true
+      count        = 3
+  }
+
+#  remove_default_node_pool = true
+#  node_pools = [
+#    {
+#      name         = "main-pool"
+#      machine_type = "e2-standard-2"
+#      disk_type    = "pd-standard"
+#      disk_size_gb = 100
+#      preemptible  = true
+#      count        = 3
+#    },
+#  ]
+
+  providers = {
+    google = google-beta.google_beta
+  }
+}
+
+resource "null_resource" "kubeconfig" {
+  provisioner "local-exec" {
+    command = "gcloud beta container clusters get-credentials ${local.container_cluster_name} --zone ${local.container_cluster_zone} --project ${local.project_id}"
+  }
+  depends_on = [
+    module.k8s
   ]
-  authorized_networks = local.authorized_networks
 }
 
-output "db1_public_ip_address" {
-  value = module.db1.public_ip_address
+output "k8s_endpoint" {
+  value = module.k8s.endpoint
 }
 
-output "db1_private_ip_address" {
-  value = module.db1.private_ip_address
+output "k8s_ca_certificate" {
+  value = module.k8s.ca_certificate
 }
 
-output "mysql_cmd" {
-  value =<<END
-
-mysql -h ${module.db1.public_ip_address} -u vincetse -p db1
-
-END
+output "configure_kubectl" {
+  value = module.k8s.configure_kubectl
 }
