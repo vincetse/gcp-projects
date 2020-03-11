@@ -21,7 +21,8 @@ data "http" "myip" {
 ################################################################################
 # authorized IP CIDRs
 locals {
-  project_id = "service1-32174"
+  #project_id = "service1-32174"
+  project_id = "iam-tester-268900"
   authorized_networks = [
     {
       name  = "home"
@@ -74,7 +75,7 @@ locals {
 }
 
 module "k8s" {
-  source       = "./modules/k8s"
+  source       = "github.com/infrastructure-as-code/terraform-google-gke-cluster"
   name         = local.container_cluster_name
   location     = local.container_cluster_zone
   cluster_type = local.cluster_type
